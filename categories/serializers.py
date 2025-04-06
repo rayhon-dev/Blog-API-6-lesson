@@ -12,5 +12,7 @@ class CategorySerializer(serializers.ModelSerializer):
             'slug'
         ]
         extra_kwargs = {
-            'slug': {'read_only': True}
+            'slug': {
+                'read_only': True
+            }
         }
