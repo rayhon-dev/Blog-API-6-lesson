@@ -31,10 +31,6 @@ class RegisterSerializer(serializers.Serializer):
 
 
 
-
-
-
-
 # {
 #   "username": "newuser",
 #   "email": "newuser@example.com",
