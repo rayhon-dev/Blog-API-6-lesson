@@ -32,3 +32,9 @@ class CommentSerializer(serializers.ModelSerializer):
 
     def get_parent(self, obj):
         return obj.parent.id if obj.parent else None
+
+
+class CommentCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comment
+        fields = ['content']

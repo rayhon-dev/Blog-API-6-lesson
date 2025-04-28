@@ -6,6 +6,8 @@ User = get_user_model()
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
+    user = serializers.PrimaryKeyRelatedField(read_only=True)
+
     class Meta:
         model = UserProfile
         fields = [
@@ -33,21 +35,11 @@ class UserSerializer(serializers.ModelSerializer):
             'last_name': {'required': True}
         }
 
-    def get_profile(self, instance):
-        try:
-            profile = instance.profile
-            return {
-                "bio": profile.bio,
-                "profile_picture": profile.profile_picture.url if profile.profile_picture else None,
-                "website": profile.website
-            }
-        except UserProfile.DoesNotExist:
-            return {
-                "bio": "",
-                "profile_picture": None,
-                "website": ""
-            }
-
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        profile = getattr(instance, 'userprofile', None)
+        data['profile'] = UserProfileSerializer(profile).data if profile else None
+        return data
 
 
     def update(self, instance, validated_data):
@@ -64,36 +56,25 @@ class UserSerializer(serializers.ModelSerializer):
 
         return instance
 
-class RegisterSerializer(serializers.Serializer):
-    id = serializers.IntegerField(read_only=True)
-    username = serializers.CharField()
-    email = serializers.EmailField()
-    password = serializers.CharField(write_only=True)
+class RegisterSerializer(serializers.ModelSerializer):
     password2 = serializers.CharField(write_only=True)
-    first_name = serializers.CharField()
-    last_name = serializers.CharField()
 
-
-
-    def validate_username(self, value):
-        if User.objects.filter(username=value).exists():
-            raise serializers.ValidationError("Username already exists.")
-        return value
-
-
-    def validate_email(self, value):
-        if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("Email already exists.")
-        return value
+    class Meta:
+        model = User
+        fields = [
+            'id',
+            'username',
+            'email',
+            'password',
+            'password2',
+            'first_name',
+            'last_name'
+        ]
 
     def validate(self, attrs):
-        if attrs['password'] != attrs['password2']:
+        if attrs['password'] != attrs.pop('password2'):
             raise serializers.ValidationError({"password": "Passwords do not match."})
         return attrs
 
     def create(self, validated_data):
-        validated_data.pop('password2')
-        user = User.objects.create_user(**validated_data)
-        return user
-
-
+        return User.objects.create_user(**validated_data)

@@ -11,12 +11,15 @@ class Category(models.Model):
     slug = models.SlugField()
 
     class Meta:
+        verbose_name = 'Category'
         verbose_name_plural = 'Categories'
 
     def __str__(self):
         return self.name
 
     def save(self, *args, **kwargs):
-        self.slug = f"{slugify(self.name)}-{randint(1, 1000)}"
+        self.slug = slugify(self.name)
+        while Category.objects.filter(slug=self.slug).exists():
+            self.slug = f"{slugify(self.name)}-{randint(1, 1000)}"
         super().save(*args, **kwargs)
 

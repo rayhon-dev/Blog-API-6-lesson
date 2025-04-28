@@ -14,10 +14,9 @@ class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     pagination_class = CategoryPagination
-    permission_classes = [IsAdminUser | ReadOnly]
-    lookup_field = 'slug'
+    permission_classes = [ReadOnly | IsAdminUser]
 
-    @action(detail=True, methods=['get'], url_path='posts', permission_classes=[IsAdminUser | ReadOnly])
+    @action(detail=True, methods=['get'])
     def posts(self, request, slug=None):
         category = self.get_object()
         posts = Post.objects.filter(category=category)

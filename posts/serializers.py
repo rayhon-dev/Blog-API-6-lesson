@@ -1,6 +1,9 @@
 from rest_framework import serializers
 from .models import Post
 from django.contrib.auth.models import User
+from postlikes.models import PostLike
+from categories.models import Category
+from tags.models import Tag
 
 
 class AuthorSerializer(serializers.ModelSerializer):
@@ -8,26 +11,24 @@ class AuthorSerializer(serializers.ModelSerializer):
         model = User
         fields = ('id', 'username', 'first_name', 'last_name')
 
-class PostAuthorSerializer(serializers.Serializer):
-    id = serializers.IntegerField(read_only=True)
-    username = serializers.CharField(read_only=True)
-    first_name = serializers.CharField(read_only=True)
-    last_name = serializers.CharField(read_only=True)
 
-class PostCategorySerializer(serializers.Serializer):
-    id = serializers.IntegerField(read_only=True)
-    name = serializers.CharField(read_only=True)
-    slug = serializers.SlugField(read_only=True)
-
-class PostTagsSerializer(serializers.Serializer):
-    id = serializers.IntegerField(read_only=True)
-    name = serializers.CharField(read_only=True)
-    slug = serializers.SlugField(read_only=True)
+class PostCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ('id', 'name', 'slug')
 
 
+class PostTagsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tag
+        fields = ('id', 'name', 'slug')
 
 
 class PostSerializer(serializers.ModelSerializer):
+    author = AuthorSerializer(read_only=True)
+    category = PostCategorySerializer(read_only=True)
+    tags = PostTagsSerializer(many=True, read_only=True)
+
     class Meta:
         model = Post
         fields = (
@@ -48,10 +49,26 @@ class PostSerializer(serializers.ModelSerializer):
             'author': {'read_only': True},
         }
 
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        data['author'] = PostAuthorSerializer(instance.author).data
-        data['category'] = PostCategorySerializer(instance.category).data
-        data['tags'] = PostTagsSerializer(instance.tags.all(), many=True).data
-        return data
 
+
+class PostLikeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PostLike
+        fields = ['id', 'post', 'user', 'value', 'created_at']
+        read_only_fields = ['id', 'post', 'user', 'created_at']
+
+    def create(self, validated_data):
+        post = self.context['post']
+        user = self.context['request'].user
+        value = validated_data.get('value')
+
+        like, created = PostLike.objects.get_or_create(
+            post=post,
+            user=user,
+            defaults={'value': value}
+        )
+        if not created:
+            like.value = value
+            like.save()
+
+        return like
